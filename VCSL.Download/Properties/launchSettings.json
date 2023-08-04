@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "VCL.Download": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7230 --useHttps --cert \"server.pfx\" --password \"1111\"",
+      "launchBrowser": false
+    }
+  }
+}

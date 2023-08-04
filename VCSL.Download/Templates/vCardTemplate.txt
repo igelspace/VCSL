@@ -1,0 +1,16 @@
+BEGIN:VCARD
+VERSION:2.1
+N;CHARSET=utf-8:[surname];[givenName];;;
+FN;CHARSET=utf-8:[displayName]
+ORG;CHARSET=utf-8:[company];[department]
+TITLE:[title]
+TEL;WORK:[phone]
+[mobile]
+ADR;WORK;CHARSET=utf-8:;;[street];[city];[state];[postalCode];[country]
+[homepageUrl]
+EMAIL:[mail]
+[source]
+X-MS-IMADDRESS:[upn]
+[photo]
+REV:[date]
+END:VCARD
