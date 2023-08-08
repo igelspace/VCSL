@@ -129,8 +129,8 @@ Nur beim Deployment vom Source Code verfügbar. Wenn der Flag nicht gesetzt ist 
 ```
 
 ## Berechtigungen vergeben
-Um die Daten der Personen in der Organisation lesen zu können müssen nach dem Deployment noch Berechtigungen vergeben werden. Hierzu müss bei dem angelegten Service Principal [hier (Azure Active Directory | App registrations)](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) die API permissions geöffnet werden. Dort muss die Microsoft Graph Berechtigung (Application) `Directory.Read.All` vergeben werden. Um die Berechtigung zu genehmigen sind `Global Administrator Rechte` erforderlich
+Um die Daten der Personen in der Organisation lesen zu können müssen nach dem Deployment noch Berechtigungen vergeben werden. Hierzu müss bei dem angelegten Service Principal [hier (Azure Active Directory | App registrations)](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps) die API permissions geöffnet werden. Dort muss die Microsoft Graph Berechtigung (Application) `Directory.Read.All` vergeben werden. Um die Berechtigung zu genehmigen sind `Global Administrator` Rechte erforderlich
 
 ## Bekannte Probleme
-Beim Anlegen der Azure Functions kann es zu einer Race-Condition zwischen dem zu erstellenden Storage Account und den Functions selbst. Hierbei kann es dazu kommen das das erstellen einer oder beider Functions fehlschlägt. In diesem Fall einfach das Deployment-Script erneut ausführen.
+Beim Anlegen der Azure Functions kann es zu einer Race-Condition zwischen dem zu erstellenden Storage Account und den Functions selbst kommen. Hierbei kann es dazu kommen das das erstellen einer oder beider Functions fehlschlägt. In diesem Fall einfach das Deployment-Script erneut ausführen.
 
