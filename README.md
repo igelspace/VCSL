@@ -117,11 +117,11 @@ Wenn dieser Parameter mit angegeben wird werden die in Azure hinterlegten Bilder
 #### -Recompile `(optional)`
 Nur beim Deployment vom Source Code verfügbar. Wenn der Flag nicht gesetzt ist wird der Source Code nur bei der ersten Ausführung kompiliert.
 
-### Deployment vom Release
+<!-- ### Deployment vom Release
 
 ``` PowerShell
 .\Run-Deployment.ps1 -TenantId "<TenantId>" -SubscriptionId "<SubscriptionId>" -GraphUserGroup "<GroupId (Aus Azure)>" -OrgName "<OrgName>" -HomepageUrl "<HomepageUrl>" -UsePhoto
-```
+``` -->
 
 ### Deployment vom Source Code
 ``` PowerShell
