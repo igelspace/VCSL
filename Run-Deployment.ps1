@@ -17,51 +17,15 @@ param(
     [bool]$UsePhoto,
     [Parameter(Mandatory = $false, HelpMessage = "Set location of ressources")]
     [ValidateSet("gwc", "gn", "we", "ne")]
-    [string]$Location = "gwc",
-    [string]$WorkDir = "temp",
-    [Parameter(Mandatory = $false, HelpMessage = "Toggle the code should be recompiled")]
-    [switch]$Recompile = $false
+    [string]$Location = "gwc"
 )
 
-function log {
+function log{
     param(
         $text
     )
 
     write-host $text -ForegroundColor Yellow -BackgroundColor DarkGreen
-}
-
-function publish {
-    param(
-        $projectName        
-    )
-    $basePath = $PSScriptRoot
-    $workingDir = "$($basePath)/$($WorkDir)"
-    If ((Test-Path -Path "$($workingDir)\$($projectName).zip") -and ($Recompile -eq $false)) {
-        return
-    }
-
-    if (-not(Test-Path -Path $workingDir)) {
-        New-Item -Path $basePath -Name $WorkDir -ItemType "directory"
-    }
-
-    $projectPath = "$($basePath)\$($projectName)\$($projectName).csproj"
-    $publishDestPath = "$($workingDir)\$($projectName)"
-
-    log "Publishing project '$($projectName)' in folder '$($publishDestPath)' ..." 
-    [void](dotnet publish $projectPath -c Release -o $publishDestPath)
-
-    $zipArchiveFullPath = "$($publishDestPath).zip"
-    log "Creating zip archive '$($zipArchiveFullPath)'"
-    $compress = @{
-        Path             = $publishDestPath + "/*"
-        CompressionLevel = "Fastest"
-        DestinationPath  = $zipArchiveFullPath
-    }
-    [void](Compress-Archive @compress -Force)
-
-    log "Cleaning up ..."
-    Remove-Item -path "$($publishDestPath)" -recurse
 }
 
 $currentCtx = Get-AzContext;
@@ -104,7 +68,6 @@ try {
             $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Subscription.Id -eq $SubscriptionId }
         }
     }
-    $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Subscription.Id -eq $SubscriptionId }
     [Void] (Set-AzContext -Context $ctx)
 
     <#
@@ -120,15 +83,19 @@ try {
     switch ($Location) {
         "gwc" {
             $locationDisplayName = "Germany West Central"
+            # $locationName = "germanywestcentral"
         }
         "gn" {
             $locationDisplayName = "Germany North"
+            # $locationName = "germanynorth"
         }
         "we" {
             $locationDisplayName = "West Europe"
+            # $locationName = "westeurope"
         }
         "ne" {
             $locationDisplayName = "North Europe"
+            # $locationName = "northeurope"
         }
     }
 
@@ -140,7 +107,7 @@ try {
     log "Deploying bicep template"
     [void](New-AzResourceGroupDeployment -Name "AppDeployment$(Get-Date -Format "yyyyMMddHHmmss")$(Get-Random -Minimum 000000 -Maximum 999999)" -ResourceGroupName $ressourceGroupName -TemplateFile 'main.bicep' -TemplateParameterFile 'main_param.bicepparam')
     log "Completed deploying bicep template"
-    
+
     <#
         Creating service principal and renewing app secrets
     #>
@@ -165,38 +132,16 @@ try {
     $appId = $($servicePrincipal.AppId)
     $appSecret = $($servicePrincipalCredential.SecretText)
 
-    $basePath = $PSScriptRoot
-    $workingDir = "$($basePath)/$($WorkDir)"
-
-    $AzSyncFuncName = 'func-ihkhl-vcslsync-germanywestcentral-001'
-    $AzDownloadFuncName = 'func-ihkhl-vcsldownload-germanywestcentral-001';
-    
     <#
-        Deploying Download functions
+        Preparing variables for deployment
     #>
-    log "Updating settings for Azure function $($AzDownloadFuncName)"
-    $webAppDownload = Get-AzFunctionAppSetting -Name $AzDownloadFuncName -ResourceGroupName $ressourceGroupName -SubscriptionId $SubscriptionId
-    $newAppSettingsDownload = @{}
-    ForEach ($kvp in $webAppDownload.SiteConfig.AppSettings) {
-        $newAppSettingsDownload[$kvp.Name] = $kvp.Value
-    }
-    $newAppSettingsDownload["updated"] = $(Get-Date -Format "yyyyMMddHHmmss").ToString()
-    $newAppSettingsDownload["FUNCTIONS_EXTENSION_VERSION"] = "~4"
-    $newAppSettingsDownload["FUNCTIONS_WORKER_RUNTIME"] = "dotnet"
-    $newAppSettingsDownload["AzureWebJobsFeatureFlags"] = "EnableProxies"
-    $newAppSettingsDownload["SourcePath"] = "${AzDownloadFuncName}.azurewebsites.net"
-    $newAppSettingsDownload["HomepageUrl"] = $HomepageUrl
+    # $path = $PSScriptRoot
 
-    [void](Update-AzFunctionAppSetting -ResourceGroupName $ressourceGroupName -Name $AzDownloadFuncName -SubscriptionId $SubscriptionId -AppSetting $newAppSettingsDownload -Force)
-    log "Finished pdating $($AzDownloadFuncName) settings"
-
-    publish("VCSL.Download");
-
-    log "Start deploy Azure Function to $($AzSyncFuncName) in $($ressourceGroupName)..."
-    [void](Publish-AzWebapp -Name $AzDownloadFuncName -ResourceGroupName $ressourceGroupName -ArchivePath "$($workingDir)\VCSL.Download.zip" -Force)
-    log "Finished deploying Function $($AzSyncFuncName)"
-
-
+    $AzSyncFuncName = ("func-{0}-vcslsync-{1}-001" -f $OrgName, $Location).ToLower().ToString()
+    # $AzSyncFuncZip = "${path}/VCSL.Sync.zip";
+    $AzDownloadFuncName = ("func-{0}-vcsldownload-{1}-001" -f $OrgName, $Location).ToLower().ToString()
+    # $AzDownloadFuncZip = "${path}/VCSL.Download.zip";
+    
     <#
         Deploying Sync functions
     #>
@@ -224,11 +169,40 @@ try {
     [void](Update-AzFunctionAppSetting -ResourceGroupName $ressourceGroupName -Name $AzSyncFuncName -SubscriptionId $SubscriptionId -AppSetting  $newAppSettingsSync -Force)
     log "Finished updating $($webApp.Name) settings"
 
-    publish("VCSL.Sync");
-
     log "Start deploy Azure Function to $($AzSyncFuncName) in $($ressourceGroupName)..."
-    [void](Publish-AzWebapp -Name $AzSyncFuncName -ResourceGroupName $ressourceGroupName -ArchivePath "$($workingDir)\VCSL.Sync.zip" -Force -Clean)
+    # $AzSyncFuncApp = Get-AzWebApp -ResourceGroupName $ressourceGroupName -Name $AzSyncFuncName
+    [void](Publish-AzWebapp -Name $AzSyncFuncName -ResourceGroupName $ressourceGroupName -ArchivePath (Get-Item .\VCSL.Sync.zip).FullName -Force)
     log "Finished deploying Function $($AzSyncFuncName)"
+    <#
+        Deploying Download functions
+    #>
+    log "Updating settings for Azure function $($AzDownloadFuncName)"
+    $webAppDownload = Get-AzFunctionAppSetting -Name $AzDownloadFuncName -ResourceGroupName $ressourceGroupName -SubscriptionId $SubscriptionId
+    $newAppSettingsDownload = @{}
+    ForEach ($kvp in $webAppDownload.SiteConfig.AppSettings) {
+        $newAppSettingsDownload[$kvp.Name] = $kvp.Value
+    }
+    $newAppSettingsDownload["updated"] = $(Get-Date -Format "yyyyMMddHHmmss").ToString()
+    $newAppSettingsDownload["FUNCTIONS_EXTENSION_VERSION"] = "~4"
+    $newAppSettingsDownload["FUNCTIONS_WORKER_RUNTIME"] = "dotnet"
+    $newAppSettingsDownload["AzureWebJobsFeatureFlags"] = "EnableProxies"
+    $newAppSettingsDownload["SourcePath"] = "${AzDownloadFuncName}.azurewebsites.net"
+    $newAppSettingsDownload["HomepageUrl"] = $HomepageUrl
+
+    [void](Update-AzFunctionAppSetting -ResourceGroupName $ressourceGroupName -Name $AzDownloadFuncName -SubscriptionId $SubscriptionId -AppSetting $newAppSettingsDownload -Force)
+    log "Finished pdating $($AzDownloadFuncName) settings"
+
+    log "Start deploy Azure Function to $($AzDownloadFuncName) in $($ressourceGroupName)..."
+    # $AzDownloadFuncApp = Get-AzWebApp -ResourceGroupName $ressourceGroupName -Name $AzDownloadFuncName
+    [void](Publish-AzWebapp -Name $AzDownloadFuncName -ResourceGroupName $ressourceGroupName -ArchivePath (Get-Item .\VCSL.Download.zip).FullName -Force)
+    log "Finished deploying Function $($AzDownloadFuncName)"
+
+    Write-Host ""
+    log "To use the vCards prepage NFC Cards / AR Codes with the following link structure for each user:"
+    log "https://$($AzDownloadFuncName).azurewebsites.net/api/VCardDownload?id=<ID of the User>"
+
+    Write-Host ""
+    log "The final touch needed is to give GroupMember.Read.All Permission to the Service Principal created (See documentation)"
 }
 catch {
     Write-Error $_.Exception.Message

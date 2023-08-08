@@ -2,6 +2,7 @@
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using VCSL.Sync.DependencyInjection;
+using System.Text.Json;
 
 [assembly: FunctionsStartup(typeof(VCSL.Sync.Startup))]
 namespace VCSL.Sync;
@@ -23,7 +24,7 @@ internal class Startup : FunctionsStartup
                 .AddJsonFile("settings.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables()
                 .Build();
-
+        Console.WriteLine(JsonSerializer.Serialize((IConfiguration)config));
         return config;
     }
 }

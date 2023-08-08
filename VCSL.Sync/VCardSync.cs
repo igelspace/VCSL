@@ -24,39 +24,20 @@ namespace VCSL.Sync;
 public class VCardSync
 {
     private readonly IConfiguration _configuration;
-    private readonly AzureAdOptions _azureAdOptions;
-    private readonly VcslOptions _options;
     private GraphServiceClient _graphServiceClient;
 
-    public VCardSync(IConfiguration configuration, IOptions<AzureAdOptions> azureAdOptions, IOptions<VcslOptions> options)
+    public VCardSync(IConfiguration configuration)
     {
         _configuration = configuration;
-        _azureAdOptions = azureAdOptions?.Value ?? throw new ArgumentNullException(nameof(AzureAdOptions));
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(VcslOptions));
     }
 
     [FunctionName("VCardSync")]
-    public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log, CancellationToken cancellationToken)
+    public async Task Run([TimerTrigger("0 0 6 * * *")] TimerInfo myTimer, ILogger log, CancellationToken cancellationToken)
     // public async Task Run([TimerTrigger("0 0 6-18 * * *")] TimerInfo myTimer, ILogger log, CancellationToken cancellationToken)
     {
         try
         {
             log.LogInformation($"[VCardSync] vCard sync started execution at: {DateTime.Now}");
-
-            // Seams i'm just to stupid
-            _options.GraphUserGroup = (string.IsNullOrEmpty(_options.GraphUserGroup))
-                ? System.Environment.GetEnvironmentVariable("GraphUserGroup")
-                : _options.GraphUserGroup;
-
-            _azureAdOptions.TenantId = (string.IsNullOrEmpty(_azureAdOptions.TenantId))
-               ? System.Environment.GetEnvironmentVariable("TenantId")
-               : _azureAdOptions.TenantId;
-            _azureAdOptions.ClientId = (string.IsNullOrEmpty(_azureAdOptions.ClientId))
-                ? System.Environment.GetEnvironmentVariable("ClientId")
-                : _azureAdOptions.ClientId;
-            _azureAdOptions.ClientSecret = (string.IsNullOrEmpty(_azureAdOptions.ClientSecret))
-                ? System.Environment.GetEnvironmentVariable("ClientSecret")
-                : _azureAdOptions.ClientSecret;
 
             #region TableClient setup
 
@@ -92,16 +73,15 @@ public class VCardSync
             #endregion
 
             #region GraphClient setup
-            log.LogInformation($"[VCardSync] TenantId {_azureAdOptions.TenantId}");
-            log.LogInformation($"[VCardSync] ClientId {_azureAdOptions.ClientId}");
+            
             log.LogInformation("[VCardSync] Creating authenticated graph helper to retrieve users from Entra ID");
-            _graphServiceClient = GraphHelper.GetAuthenticatedGraphClient(_azureAdOptions);
+            _graphServiceClient = GraphHelper.GetAuthenticatedGraphClient(_configuration);
 
             #endregion
 
             #region Graph data retrieval
 
-            var graphUserList = await GraphHelper.GetMembersOfGroup(_graphServiceClient, _options.GraphUserGroup, "id, surname, givenName, displayName, department, jobTitle, companyName, businessPhones, mobilePhone, streetAddress, city, state, postalCode, country, mail, userPrincipalName");
+            var graphUserList = await GraphHelper.GetMembersOfGroup(_graphServiceClient, _configuration["GraphUserGroup"], "id, surname, givenName, displayName, department, jobTitle, companyName, businessPhones, mobilePhone, streetAddress, city, state, postalCode, country, mail, userPrincipalName");
 
             if (graphUserList?.Count > 0 is not true)
             {
@@ -124,7 +104,7 @@ public class VCardSync
 
                 var photoBase64 = "";
 
-                if (_options.UsePhoto)
+                if (_configuration.GetValue<bool>("UsePhoto"))
                 {
                     log.LogInformation("[VCardSync] Retrieving photo for user {name}", usr.DisplayName ?? $"with id {usr.Id}");
                     try

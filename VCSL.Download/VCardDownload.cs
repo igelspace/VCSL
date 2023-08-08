@@ -20,18 +20,16 @@ namespace VCSL.Download;
 public class VCardDownload
 {
     private readonly IConfiguration _configuration;
-    private readonly VcslOptions _options;
 
-    public VCardDownload(IConfiguration configuration, IOptions<VcslOptions> options)
+    public VCardDownload(IConfiguration configuration)
     {
         _configuration = configuration;
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(VcslOptions));
     }
 
     [FunctionName("VCardDownload")]
     public async Task<IActionResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-        ILogger log)
+        ILogger log, ExecutionContext context)
     {
         log.LogInformation("[VCardDownload] vCard download started execution at: {date}", DateTime.Now);
 
@@ -52,9 +50,9 @@ public class VCardDownload
             var tableClient = new TableClient(connectionString, "VCardData");
 
             log.LogInformation("[VCardDownload] Retrieving vCard for id {id}", id);
-            var vCardData = (VCardDataModel)await tableClient.GetEntityAsync<VCardDataModel>("Data", id);
+            var vCardData = (VCardDataModel)tableClient.GetEntity<VCardDataModel>("Data", id);
 
-            if (vCardData == null)
+            if (vCardData == null || string.IsNullOrWhiteSpace(vCardData.DisplayName))
             {
                 log.LogError("[VCardDownload] No vCard found for id {id}", id);
                 return new NotFoundResult();
@@ -62,13 +60,12 @@ public class VCardDownload
 
             log.LogInformation("[VCardDownload] Found vCard for {name}", vCardData.DisplayName);
             
-
             #endregion
 
             #region vCard preperation
 
             log.LogInformation("[VCardDownload] Loading template for vCard");
-            var file = await System.IO.File.ReadAllTextAsync("Templates/vCardTemplate.txt");
+            var file = await System.IO.File.ReadAllTextAsync($"{context.FunctionAppDirectory}/Templates/vCardTemplate.txt");
 
             log.LogInformation("[VCardDownload] Substituting values in template");
             file = file.Replace("[surname]", vCardData.Surname);
@@ -92,12 +89,12 @@ public class VCardDownload
                 ? vCardData.Timestamp.Value.Date.ToIsoDateString()
                 : DateTime.Now.ToIsoDateString());
 
-            file = file.Replace("[homepageUrl]", string.IsNullOrEmpty(_options.HomepageUrl)
+            file = file.Replace("[homepageUrl]", string.IsNullOrEmpty(_configuration["HomepageUrl"])
                 ? ""
-                : $"URL;WORK:{_options.HomepageUrl}");
-            file = file.Replace("[source]", string.IsNullOrEmpty(_options.SourcePath)
+                : $"URL;WORK:{_configuration["HomepageUrl"]}");
+            file = file.Replace("[source]", string.IsNullOrEmpty(_configuration["SourcePath"])
                 ? ""
-                : $"SOURCE:{_options.SourcePath}/api/VCardDownload?id={id}");
+                : $"SOURCE:{_configuration["SourcePath"]}/api/VCardDownload?id={id}");
             file = file.Replace("[photo]", (string.IsNullOrEmpty(vCardData.Photo)
                 ? ""
                 : $"PHOTO;JPEG;ENCODING=BASE64:{vCardData.Photo}"));

@@ -18,7 +18,7 @@ public static class GraphHelper
     /// </summary>
     /// <param name="options">Options to set the connection details for the service principal.</param>
     /// <param name="scopes">Optionally provide scopes. Defaults to the default scopes provided with the service principal.</param>
-    public static GraphServiceClient GetAuthenticatedGraphClient(AzureAdOptions options, List<string>? scopes = null)
+    public static GraphServiceClient GetAuthenticatedGraphClient(IConfiguration options, List<string>? scopes = null)
     {
         if (scopes == null || scopes.Count == 0)
         {
@@ -28,7 +28,7 @@ public static class GraphHelper
             };
         }
 
-        var credentials = new ClientSecretCredential(options.TenantId, options.ClientId, options.ClientSecret);
+        var credentials = new ClientSecretCredential(options["TenantId"], options["ClientId"], options["ClientSecret"]);
         return new GraphServiceClient(credentials, scopes);
     }
 

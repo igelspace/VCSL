@@ -21,38 +21,19 @@ namespace VCSL.Sync;
 public class VCardCleanup
 {
     private readonly IConfiguration _configuration;
-    private readonly AzureAdOptions _azureAdOptions;
-    private readonly VcslOptions _options;
     private GraphServiceClient _graphServiceClient;
 
-    public VCardCleanup(IConfiguration configuration, IOptions<AzureAdOptions> azureAdOptions, IOptions<VcslOptions> options)
+    public VCardCleanup(IConfiguration configuration)
     {
         _configuration = configuration;
-        _azureAdOptions = azureAdOptions?.Value ?? throw new ArgumentNullException(nameof(AzureAdOptions));
-        _options = options?.Value ?? throw new ArgumentNullException(nameof(VcslOptions));
     }
-
+    
     [FunctionName("VCardCleanup")]
     public async Task Run([TimerTrigger("0 0 23 * * *")] TimerInfo myTimer, ILogger log, CancellationToken cancellationToken)
     {
         try
         {
             log.LogInformation("[VCardCleanup] vCard cleanup started execution at: {date}", DateTime.Now);
-
-            // Seams i'm just to stupid
-            _options.GraphUserGroup = (string.IsNullOrEmpty(_options.GraphUserGroup))
-                ? System.Environment.GetEnvironmentVariable("GraphUserGroup")
-                : _options.GraphUserGroup;
-
-            _azureAdOptions.TenantId = (string.IsNullOrEmpty(_azureAdOptions.TenantId))
-               ? System.Environment.GetEnvironmentVariable("TenantId")
-               : _azureAdOptions.TenantId;
-            _azureAdOptions.ClientId = (string.IsNullOrEmpty(_azureAdOptions.ClientId))
-                ? System.Environment.GetEnvironmentVariable("ClientId")
-                : _azureAdOptions.ClientId;
-            _azureAdOptions.ClientSecret = (string.IsNullOrEmpty(_azureAdOptions.ClientSecret))
-                ? System.Environment.GetEnvironmentVariable("ClientSecret")
-                : _azureAdOptions.ClientSecret;
 
             #region TableClient setup
 
@@ -89,14 +70,14 @@ public class VCardCleanup
             #region GraphClient setup
 
             log.LogInformation("[VCardCleanup] Creating authenticated graph helper to retrieve users from Entra ID");
-
-            _graphServiceClient = GraphHelper.GetAuthenticatedGraphClient(_azureAdOptions);
+            
+            _graphServiceClient = GraphHelper.GetAuthenticatedGraphClient(_configuration);
 
             #endregion
 
             #region Graph data retrieval
 
-            var graphUserList = await GraphHelper.GetMembersOfGroup(_graphServiceClient, _options.GraphUserGroup, "id, surname, givenName, displayName, department, jobTitle, companyName, businessPhones, mobilePhone, streetAddress, city, state, postalCode, country, mail, userPrincipalName");
+            var graphUserList = await GraphHelper.GetMembersOfGroup(_graphServiceClient, _configuration["GraphUserGroup"], "id, surname, givenName, displayName, department, jobTitle, companyName, businessPhones, mobilePhone, streetAddress, city, state, postalCode, country, mail, userPrincipalName");
 
             if (graphUserList?.Count > 0 is not true)
             {
@@ -153,9 +134,9 @@ public class VCardCleanup
 
             #region Photo cleanup
 
-            if (!_options.UsePhoto)
+            if (!_configuration.GetValue<bool>("UsePhoto"))
             {
-                var vCardDataModels = tableClient.Query<VCardDataModel>().ToList();
+                var vCardDataModels = tableClient.Query<VCardDataModel>(v => v.Photo != string.Empty || v.Photo != null).ToList();
 
                 vCardDataModels.ForEach(d => d.Photo = string.Empty);
                 var updateVCardDataBatch = vCardDataModelsToDelete.Select(data => new TableTransactionAction(TableTransactionActionType.UpsertMerge, data)).ToList();
