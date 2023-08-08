@@ -78,7 +78,7 @@ bicep --help
 # Done!
 ```
 
-### .Net `(Nur beim selbst Kompilieren erforderlich)`
+### .Net SDK `(Nur beim selbst Kompilieren erforderlich)`
 ``` PowerShell
 winget install Microsoft.DotNet.SDK.6
 ```
