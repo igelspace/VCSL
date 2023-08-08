@@ -14,7 +14,7 @@ param(
     [Parameter(Mandatory = $false, HelpMessage = "URL of the homepage used in the vCard")]
     [string]$HomepageUrl,
     [Parameter(Mandatory = $false, HelpMessage = "Toggle if photos of the users are included in the vCards")]
-    [bool]$UsePhoto,
+    [switch]$UsePhoto = $false,
     [Parameter(Mandatory = $false, HelpMessage = "Set location of ressources")]
     [ValidateSet("gwc", "gn", "we", "ne")]
     [string]$Location = "gwc"

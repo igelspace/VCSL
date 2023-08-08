@@ -13,14 +13,14 @@ param(
     [string]$ServicePrincipalName = "VCSL vCard",
     [Parameter(Mandatory = $false, HelpMessage = "URL of the homepage used in the vCard")]
     [string]$HomepageUrl,
-    [Parameter(Mandatory = $false, HelpMessage = "Toggle if photos of the users are included in the vCards")]
-    [bool]$UsePhoto,
     [Parameter(Mandatory = $false, HelpMessage = "Set location of ressources")]
     [ValidateSet("gwc", "gn", "we", "ne")]
     [string]$Location = "gwc",
     [string]$WorkDir = "temp",
     [Parameter(Mandatory = $false, HelpMessage = "Toggle the code should be recompiled")]
-    [switch]$Recompile = $false
+    [switch]$Recompile = $false,
+    [Parameter(Mandatory = $false, HelpMessage = "Toggle if photos of the users are included in the vCards")]
+    [switch]$UsePhoto = $false
 )
 
 function log {
@@ -114,7 +114,7 @@ try {
 
     $bicepParams = Get-Item -Path .\main_param.bicepparam
     $bicepParamsContent = Get-Content -Path $bicepParams.FullName
-    $bicepParamsContent = $bicepParamsContent -replace "ihkhl", $OrgName.ToLower()
+    $bicepParamsContent = $bicepParamsContent -replace "<orgName>", $OrgName.ToLower()
     Set-Content -Path $bicepParams.FullName -Value $bicepParamsContent
 
     switch ($Location) {
@@ -168,8 +168,13 @@ try {
     $basePath = $PSScriptRoot
     $workingDir = "$($basePath)/$($WorkDir)"
 
-    $AzSyncFuncName = 'func-ihkhl-vcslsync-germanywestcentral-001'
-    $AzDownloadFuncName = 'func-ihkhl-vcsldownload-germanywestcentral-001';
+    <#
+        Preparing variables for deployment
+    #>
+
+    $AzSyncFuncName = ("func-{0}-vcslsync-{1}-001" -f $OrgName, $Location).ToLower().ToString()
+    $AzDownloadFuncName = ("func-{0}-vcsldownload-{1}-001" -f $OrgName, $Location).ToLower().ToString()
+    
     
     <#
         Deploying Download functions
@@ -213,10 +218,10 @@ try {
     $newAppSettingsSync["UsePhoto"] = $UsePhoto.ToString()
     $newAppSettingsSync["GraphUserGroup"] = $GraphUserGroup
     $newAppSettingsSync["TenantId"] = $TenantId.ToString()
-    if (($null -ne $appId) -and ($appId -ne "")){
+    if (($null -ne $appId) -and ($appId -ne "")) {
         $newAppSettingsSync["ClientId"] = $appId
     }
-    if (($null -ne $appSecret) -and ($appSecret -ne "")){
+    if (($null -ne $appSecret) -and ($appSecret -ne "")) {
         $newAppSettingsSync["ClientSecret"] = $appSecret
     }
     $newAppSettingsSync["Authority"] = ""    
