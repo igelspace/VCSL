@@ -4,6 +4,20 @@ h4, h5, h6 {
     margin: 0;
 }
 </style>
+## Aufbau
+VCSL besteht aus 2 Azure Functions. 
+```mermaid
+graph TD
+    subgraph rg-abcde-vcsl-gwv-001
+        A[Azure Function<br>func-abcde-vcslsync-gwc-001]-->C[Storage Account<br>saabcdevcsl]
+        B[Azure Function<br>func-abcde-vcsldownload-gwc-001]-->C
+        A-->D[Application Insights<br>aa-abcde-vcsl-gwc-001]
+        B-->D
+        A-->E[App Service Plan<br>aa-abcde-vcsl-gwc-001]
+        B-->E
+    end
+```
+
 ## Voraussetzungen
 ### PowerShell Module
 Für die Ausführung des Deployments müssen folgende PowerShell Module installiert sein:
@@ -119,3 +133,4 @@ Um die Daten der Personen in der Organisation lesen zu können müssen nach dem 
 
 ## Bekannte Probleme
 Beim Anlegen der Azure Functions kann es zu einer Race-Condition zwischen dem zu erstellenden Storage Account und den Functions selbst. Hierbei kann es dazu kommen das das erstellen einer oder beider Functions fehlschlägt. In diesem Fall einfach das Deployment-Script erneut ausführen.
+
