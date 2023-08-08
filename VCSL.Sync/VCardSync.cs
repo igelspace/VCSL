@@ -43,6 +43,21 @@ public class VCardSync
         {
             log.LogInformation($"[VCardSync] vCard sync started execution at: {DateTime.Now}");
 
+            // Seams i'm just to stupid
+            _options.GraphUserGroup = (string.IsNullOrEmpty(_options.GraphUserGroup))
+                ? System.Environment.GetEnvironmentVariable("GraphUserGroup")
+                : _options.GraphUserGroup;
+
+            _azureAdOptions.TenantId = (string.IsNullOrEmpty(_azureAdOptions.TenantId))
+               ? System.Environment.GetEnvironmentVariable("TenantId")
+               : _azureAdOptions.TenantId;
+            _azureAdOptions.ClientId = (string.IsNullOrEmpty(_azureAdOptions.ClientId))
+                ? System.Environment.GetEnvironmentVariable("ClientId")
+                : _azureAdOptions.ClientId;
+            _azureAdOptions.ClientSecret = (string.IsNullOrEmpty(_azureAdOptions.ClientSecret))
+                ? System.Environment.GetEnvironmentVariable("ClientSecret")
+                : _azureAdOptions.ClientSecret;
+
             #region TableClient setup
 
             log.LogInformation("[VCardSync] Connecting to storage");
@@ -77,7 +92,8 @@ public class VCardSync
             #endregion
 
             #region GraphClient setup
-
+            log.LogInformation($"[VCardSync] TenantId {_azureAdOptions.TenantId}");
+            log.LogInformation($"[VCardSync] ClientId {_azureAdOptions.ClientId}");
             log.LogInformation("[VCardSync] Creating authenticated graph helper to retrieve users from Entra ID");
             _graphServiceClient = GraphHelper.GetAuthenticatedGraphClient(_azureAdOptions);
 
