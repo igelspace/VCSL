@@ -7,8 +7,6 @@ param(
     [string]$OrgName = $(throw "-OrgName is required"),
     [Parameter(Mandatory = $true, HelpMessage = "Id pf the group to search the users in")]
     [string]$GraphUserGroup = $(throw "GraphUserGroup is required"),
-    [Parameter(Mandatory = $false, HelpMessage = "Name of Account in Azure Context in case of multiple contexts")]
-    [string]$Account,
     [Parameter(Mandatory = $false, HelpMessage = "Name of the App registration")]
     [string]$ServicePrincipalName = "VCSL vCard",
     [Parameter(Mandatory = $false, HelpMessage = "URL of the homepage used in the vCard")]
@@ -20,7 +18,9 @@ param(
     [Parameter(Mandatory = $false, HelpMessage = "Toggle the code should be recompiled")]
     [switch]$Recompile = $false,
     [Parameter(Mandatory = $false, HelpMessage = "Toggle if photos of the users are included in the vCards")]
-    [switch]$UsePhoto = $false
+    [switch]$UsePhoto = $false,
+    [Parameter(Mandatory = $false, HelpMessage = "Export Links to all vCards as CSV")]
+    [switch]$ExportLinks = $false
 )
 
 function log {
@@ -37,12 +37,12 @@ function publish {
     )
     $basePath = $PSScriptRoot
     $workingDir = "$($basePath)/$($WorkDir)"
-    If ((Test-Path -Path "$($workingDir)\$($projectName).zip") -and ($Recompile -eq $false)) {
+    if ((Test-Path -Path "$($workingDir)\$($projectName).zip") -and ($Recompile -eq $false)) {
         return
     }
 
     if (-not(Test-Path -Path $workingDir)) {
-        New-Item -Path $basePath -Name $WorkDir -ItemType "directory"
+        [void](New-Item -Path $basePath -Name $WorkDir -ItemType "directory")
     }
 
     $projectPath = "$($basePath)\$($projectName)\$($projectName).csproj"
@@ -61,7 +61,7 @@ function publish {
     [void](Compress-Archive @compress -Force)
 
     log "Cleaning up ..."
-    Remove-Item -path "$($publishDestPath)" -recurse
+    [void](Remove-Item -path "$($publishDestPath)" -recurse)
 }
 
 $currentCtx = Get-AzContext;
@@ -234,6 +234,20 @@ try {
     log "Start deploy Azure Function to $($AzSyncFuncName) in $($ressourceGroupName)..."
     [void](Publish-AzWebapp -Name $AzSyncFuncName -ResourceGroupName $ressourceGroupName -ArchivePath "$($workingDir)\VCSL.Sync.zip" -Force -Clean)
     log "Finished deploying Function $($AzSyncFuncName)"
+
+    if ($ExportLinks) {
+        log "Exporting vCard Links for users as CSV"
+        $users = Get-AzADGroupMember -GroupObjectId $GraphUserGroup | ForEach-Object {
+            [pscustomobject]@{DisplayName = $_.DisplayName; Url = "https://$($AzDownloadFuncName).azurewebsites.net/api/VCardDownload?id=$($_.Id)";}            
+        }
+
+        Add-Type -AssemblyName System.Windows.Forms
+        $saveDialog = New-Object -TypeName System.Windows.Forms.SaveFileDialog
+        $saveDialog.initialDirectory = "C:${env:HOMEPATH}\Desktop"
+        $saveDialog.filter = "CSV (*.csv)|*.csv|All files (*.*)|*.*";
+        $saveDialog.ShowDialog()								
+        $users | Export-Csv -Path $saveDialog.FileName
+    }
 }
 catch {
     Write-Error $_.Exception.Message
