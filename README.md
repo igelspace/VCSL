@@ -2,25 +2,28 @@
 
 ## Funktion
 
-VSCL ist ein simples Tool um digitale Visitenkarten mittels vCards
+VSCL ist ein simples Tool um digitale Visitenkarten mittels vCards, anhand der Daten aus dem eigenen Azure Active Directory (AAD), bereitzustellen, ohne externen Personen einen direkten Zugriff auf selbiges zu geben.
 
 ## Aufbau
 
-VCSL besteht aus 2 Azure Function Apps.
+VCSL besteht aus 2 Azure Function Apps (VCSL Sync und VCSL Download), einem Storage Account und der Benötigten Infrastruktur für die Überwachung.
+VCSL Sync hat 2 Azure Functions. VCardSync ruft die Kontaktdaten der Personen anhand der eingestellten aus dem AAD ab und speichert diese in dem Storage Account
 
 ```mermaid
 graph TD
     subgraph rg-abcde-vcsl-gwc-001
-        A[Azure Function<br>func-abcde-vcslsync-gwc-001]-->C[Storage Account<br>saabcdevcsl]
-        B[Azure Function<br>func-abcde-vcsldownload-gwc-001]-->C
-        A-->D[Application Insights<br>appi-abcde-vcsl-gwc-001]
-        B-->D
-        A-->E[App Service Plan<br>asp-abcde-vcsl-gwc-001]
-        B-->E
-        F[VCardSync]-->A
-        G[VCardCleanup]-->A
-        H[VCardDownload]-->B
+        A[Azure Function<br>func-abcde-vcslsync-gwc-001]---C[Storage Account<br>saabcdevcsl]
+        F[VCardSync]---A
+        G[VCardCleanup]---A
+        B[Azure Function<br>func-abcde-vcsldownload-gwc-001]---C
+        A---D[Application Insights<br>appi-abcde-vcsl-gwc-001]
+        B---D
+        A---E[App Service Plan<br>asp-abcde-vcsl-gwc-001]
+        B---E
+        H[VCardDownload]---B
     end
+    I[Azure Active Directory]---F
+    I[Azure Active Directory]---G
 ```
 
 <sub>Im gezeigten Graphen wird davon ausgegangen das die Organisation das Kürzel 'abcde' hat und die Lösung am Azure Standort 'Germany West Central' bereitgestellt wurde.</sub>

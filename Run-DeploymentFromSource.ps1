@@ -5,7 +5,7 @@ param(
     [Guid]$SubscriptionId = $(throw "-SubscriptionId is required"),
     [Parameter(Mandatory = $true, HelpMessage = "Shortname of the Company")]
     [string]$OrgName = $(throw "-OrgName is required"),
-    [Parameter(Mandatory = $true, HelpMessage = "Id pf the group to search the users in")]
+    [Parameter(Mandatory = $true, HelpMessage = "Id of the group to search the users in")]
     [string]$GraphUserGroup = $(throw "GraphUserGroup is required"),
     [Parameter(Mandatory = $false, HelpMessage = "Name of the App registration")]
     [string]$ServicePrincipalName = "VCSL vCard",
