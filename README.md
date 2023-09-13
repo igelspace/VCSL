@@ -34,12 +34,6 @@ graph TD
 
 Für die Ausführung des Deployments müssen folgende PowerShell Module installiert sein:
 
-#### Az.Identity
-
-``` PowerShell
-Install-Module Az.Identity -Scope CurrentUser
-```
-
 #### Az.Resources ([Microsoft Learn | Az.Resources](https://learn.microsoft.com/en-us/powershell/module/az.resources/))
 
 ``` PowerShell

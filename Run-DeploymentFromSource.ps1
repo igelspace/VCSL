@@ -112,10 +112,10 @@ try {
     #>
     $ressourceGroupName = "rg-${OrgName}-vcsl-${Location}-001"
 
-    $bicepParams = Get-Item -Path .\main_param.bicepparam
-    $bicepParamsContent = Get-Content -Path $bicepParams.FullName
-    $bicepParamsContent = $bicepParamsContent -replace "<orgName>", $OrgName.ToLower()
-    Set-Content -Path $bicepParams.FullName -Value $bicepParamsContent
+    # $bicepParams = Get-Item -Path .\main_param.bicepparam
+    # $bicepParamsContent = Get-Content -Path $bicepParams.FullName
+    # $bicepParamsContent = $bicepParamsContent -replace "<orgName>", $OrgName.ToLower()
+    # Set-Content -Path $bicepParams.FullName -Value $bicepParamsContent
 
     switch ($Location) {
         "gwc" {
